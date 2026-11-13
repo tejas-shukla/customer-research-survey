@@ -7,10 +7,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please complete the survey and confirm research consent." }, { status: 400 });
     }
     const isEarlyYes = body.answers.early_member === "Yes, definitely";
+    if (typeof body.email !== "string" || !body.email.trim()) {
+      return NextResponse.json({ error: "Please provide your email address." }, { status: 400 });
+    }
     if (isEarlyYes && (!body.email || !body.email_contact_consent)) {
       return NextResponse.json({ error: "An email address and contact consent are required for early membership." }, { status: 400 });
     }
-    if (body.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())) {
       return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
     }
 
@@ -29,7 +32,7 @@ export async function POST(request: Request) {
           secret,
           answers: body.answers,
           other: body.other || {},
-          email: body.email || null,
+          email: body.email.trim(),
           email_contact_consent: body.email_contact_consent === true,
           research_consent: true,
           cohort: body.cohort || "unclassified"

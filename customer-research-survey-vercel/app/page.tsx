@@ -3,8 +3,9 @@
 import { FormEvent, useState } from "react";
 
 type Answers = Record<string, string | string[]>;
-type Question = { id: string; title: string; type: "radio" | "multi"; options: string[]; hint?: string; max?: number };
+type Question = { id: string; title: string; type: "radio" | "multi" | "email"; options: string[]; hint?: string; max?: number };
 const questions: Question[] = [
+  { id: "email", title: "What's your email address?", type: "email", options: [], hint: "We’ll store your email with your survey response. We’ll only contact you about early membership if you separately agree below." },
   {
     id: "holiday_timing", title: "When did you last plan or book a holiday involving at least one overnight stay?",
     type: "radio", options: ["Within the last 3 months", "3–6 months ago", "6–12 months ago", "More than 12 months ago"]
@@ -79,6 +80,7 @@ export default function Home() {
     }
   }
   function valid() {
+    if (q.id === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
     if (!selected || (Array.isArray(selected) && selected.length === 0)) return false;
     if (q.id === "early_member" && isEmailRequired && (!email.trim() || !emailConsent)) return false;
     return true;
@@ -91,7 +93,7 @@ export default function Home() {
     const payload = {
       answers: Object.fromEntries(Object.entries(answers).map(([k,v]) => [k, Array.isArray(v) ? v : v])),
       other,
-      email: isEmailRequired ? email.trim() : null,
+      email: email.trim(),
       email_contact_consent: isEmailRequired ? emailConsent : false,
       research_consent: researchConsent,
       cohort: (Array.isArray(answers.services_used) && answers.services_used.some(v => ["Nectar or Tesco Clubcard","TopCashback or Quidco","Airline or hotel loyalty programmes","Bank or credit card rewards"].includes(v))) ? "existing_rewards_user" : "no_reported_rewards_use"
@@ -111,12 +113,13 @@ export default function Home() {
     <header className="brand"><div className="brand-mark">🍒</div><div><div className="brand-name">Customer Research</div><div className="brand-sub">CUSTOMER RESEARCH</div></div></header>
     <section className="intro"><p className="eyebrow">YOUR EXPERIENCE MATTERS</p><h1>Help us make saving for life's experiences easier.</h1><p>We're researching how people plan holidays, manage savings and use rewards or cashback services. Your feedback will help us understand what people need.</p><div className="meta"><span>◷ 3–4 minutes</span><span>•</span><span>10 questions</span></div></section>
     <section className="survey-card">
-      <div className="progress-top"><span>QUESTION {step+1} OF {questions.length}</span><strong>{progress}%</strong></div>
+      <div className="progress-top"><span>{q.id === "email" ? "EMAIL ADDRESS" : `QUESTION ${step} OF ${questions.length - 1}`}</span><strong>{progress}%</strong></div>
       <div className="progress"><div style={{width:`${progress}%`}} /></div>
       <form onSubmit={e => { e.preventDefault(); if (step < questions.length-1) { if(valid()) setStep(s=>s+1); else setError("Please select an answer to continue."); } else submit(e); }}>
-        <div className="question-number">QUESTION {step+1}</div>
+        <div className="question-number">{q.id === "email" ? "BEFORE YOU BEGIN" : `QUESTION ${step} OF ${questions.length - 1}`}</div>
         <h2>{q.title}</h2>
         {q.hint && <p className="hint">{q.hint}</p>}
+        {q.id === "email" && <input className="text-input" type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={e=>{setEmail(e.target.value); setError("");}} />}
         <div className="options">
           {q.options.map(option => {
             const checked = isMulti ? (Array.isArray(selected) && selected.includes(option)) : selected === option;
