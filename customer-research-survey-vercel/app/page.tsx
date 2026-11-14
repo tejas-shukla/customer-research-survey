@@ -5,8 +5,8 @@ import { FormEvent, useState } from "react";
 type Answers = Record<string, string | string[]>;
 type Question = { id: string; title: string; type: "radio" | "multi" | "email"; options: string[]; hint?: string; max?: number };
 const questions: Question[] = [
-  { id: "email", title: "What's your email address?", type: "email", options: [], hint: "We’ll store your email with your survey response. We’ll only contact you about early membership if you separately agree below." },
-  {
+  { id: "email", title: "What's your email address?", type: "email", options: ["Yes", "No", "Prefer not to say"], hint: "We’ll store your email with your survey response. We’ll only contact you about early membership if you separately agree below." },
+ {
     id: "holiday_timing", title: "When did you last plan or book a holiday involving at least one overnight stay?",
     type: "radio", options: ["Within the last 3 months", "3–6 months ago", "6–12 months ago", "More than 12 months ago"]
   },
@@ -55,7 +55,7 @@ const questions: Question[] = [
 ];
 
 export default function Home() {
-  const [answers, setAnswers] = useState<Answers>({});
+  const [answers, setAnswers] = useState<Answers>({ uk_based: "Yes" });
   const [other, setOther] = useState<Record<string, string>>({});
   const [email, setEmail] = useState("");
   const [emailConsent, setEmailConsent] = useState(false);
@@ -66,11 +66,11 @@ export default function Home() {
   const [error, setError] = useState("");
   const progress = Math.round(((step + 1) / questions.length) * 100);
   const q = questions[step];
-  const selected = answers[q.id];
+  const selected = q.id === "email" ? answers.uk_based : answers[q.id];
   const isMulti = q.type === "multi";
   const isEmailRequired = answers.early_member === "Yes, definitely";
 
-  function setSingle(value: string) { setAnswers(a => ({ ...a, [q.id]: value })); }
+  function setSingle(value: string) { const answerId = q.id === "email" ? "uk_based" : q.id; setAnswers(a => ({ ...a, [answerId]: value })); }
   function toggle(value: string) {
     const current = Array.isArray(selected) ? selected : [];
     if (current.includes(value)) {
@@ -80,7 +80,7 @@ export default function Home() {
     }
   }
   function valid() {
-    if (q.id === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+    if (q.id === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && Boolean(selected);
     if (!selected || (Array.isArray(selected) && selected.length === 0)) return false;
     if (q.id === "early_member" && isEmailRequired && (!email.trim() || !emailConsent)) return false;
     return true;
@@ -120,7 +120,7 @@ export default function Home() {
         <h2>{q.title}</h2>
         {q.hint && <p className="hint">{q.hint}</p>}
         {q.id === "email" && <input className="text-input" type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={e=>{setEmail(e.target.value); setError("");}} />}
-        <div className="options">
+        {q.id === "email" && <p className="hint">Are you currently based in the UK?</p>}        {q.id === "email" && <p className="hint">Are you currently based in the UK?</p>}        <div className="options">
           {q.options.map(option => {
             const checked = isMulti ? (Array.isArray(selected) && selected.includes(option)) : selected === option;
             return <label key={option} className={`option ${checked ? "selected" : ""}`}>
