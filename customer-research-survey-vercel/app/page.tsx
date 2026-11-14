@@ -120,7 +120,7 @@ export default function Home() {
         <h2>{q.title}</h2>
         {q.hint && <p className="hint">{q.hint}</p>}
         {q.id === "email" && <input className="text-input" type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={e=>{setEmail(e.target.value); setError("");}} />}
-        {q.id === "email" && <p className="hint">Are you currently based in the UK?</p>}        {q.id === "email" && <p className="hint">Are you currently based in the UK?</p>}        <div className="options">
+                {q.id === "email" && <p className="hint">Are you currently based in the UK?</p>        {q.id === "email" && <p className="hint">Are you currently based in the UK?</p>}        <div className="options">
           {q.options.map(option => {
             const checked = isMulti ? (Array.isArray(selected) && selected.includes(option)) : selected === option;
             return <label key={option} className={`option ${checked ? "selected" : ""}`}>
