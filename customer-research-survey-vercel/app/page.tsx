@@ -3,10 +3,10 @@
 import { FormEvent, useState } from "react";
 
 type Answers = Record<string, string | string[]>;
-type Question = { id: string; title: string; type: "radio" | "multi" | "email"; options: string[]; hint?: string; max?: number };
+type Question = { id: string; title: string; type: "radio" | "multi"; options: string[]; hint?: string; max?: number };
 const questions: Question[] = [
-  { id: "email", title: "What's your email address?", type: "email", options: ["Yes", "No", "Prefer not to say"], hint: "We’ll store your email with your survey response. We’ll only contact you about early membership if you separately agree below." },
- {
+  { id: "uk_based", title: "Are you currently based in the UK?", type: "radio", options: ["Yes", "No", "Prefer not to say"] },
+  {
     id: "holiday_timing", title: "When did you last plan or book a holiday involving at least one overnight stay?",
     type: "radio", options: ["Within the last 3 months", "3–6 months ago", "6–12 months ago", "More than 12 months ago"]
   },
@@ -66,11 +66,13 @@ export default function Home() {
   const [error, setError] = useState("");
   const progress = Math.round(((step + 1) / questions.length) * 100);
   const q = questions[step];
-  const selected = q.id === "email" ? answers.uk_based : answers[q.id];
+  const selected = answers[q.id];
   const isMulti = q.type === "multi";
-  const isEmailRequired = answers.early_member === "Yes, definitely";
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  // Email is only required when the user opts in to hear about the launch.
+  const isEmailRequired = emailConsent;
 
-  function setSingle(value: string) { const answerId = q.id === "email" ? "uk_based" : q.id; setAnswers(a => ({ ...a, [answerId]: value })); }
+  function setSingle(value: string) { setAnswers(a => ({ ...a, [q.id]: value })); }
   function toggle(value: string) {
     const current = Array.isArray(selected) ? selected : [];
     if (current.includes(value)) {
@@ -80,21 +82,20 @@ export default function Home() {
     }
   }
   function valid() {
-    if (q.id === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && Boolean(selected);
     if (!selected || (Array.isArray(selected) && selected.length === 0)) return false;
-    if (q.id === "early_member" && isEmailRequired && (!email.trim() || !emailConsent)) return false;
+    if (q.id === "early_member" && isEmailRequired && !emailValid) return false;
     return true;
   }
   async function submit(e: FormEvent) {
     e.preventDefault(); setError("");
     if (!researchConsent) { setError("Please confirm that you are happy for your survey responses to be used for this research."); return; }
-    if (isEmailRequired && (!email.trim() || !emailConsent)) { setError("Please enter your email and agree to be contacted about early membership."); return; }
+    if (isEmailRequired && !emailValid) { setError("Please enter a valid email address so we can let you know when the app launches."); return; }
     setBusy(true);
     const payload = {
       answers: Object.fromEntries(Object.entries(answers).map(([k,v]) => [k, Array.isArray(v) ? v : v])),
       other,
-      email: email.trim(),
-      email_contact_consent: isEmailRequired ? emailConsent : false,
+      email: emailConsent ? email.trim() : "",
+      email_contact_consent: emailConsent,
       research_consent: researchConsent,
       cohort: (Array.isArray(answers.services_used) && answers.services_used.some(v => ["Nectar or Tesco Clubcard","TopCashback or Quidco","Airline or hotel loyalty programmes","Bank or credit card rewards"].includes(v))) ? "existing_rewards_user" : "no_reported_rewards_use"
     };
@@ -113,14 +114,13 @@ export default function Home() {
     <header className="brand"><div className="brand-mark">🍒</div><div><div className="brand-name">Customer Research</div><div className="brand-sub">CUSTOMER RESEARCH</div></div></header>
     <section className="intro"><p className="eyebrow">YOUR EXPERIENCE MATTERS</p><h1>Help us make saving for life's experiences easier.</h1><p>We're researching how people plan holidays, manage savings and use rewards or cashback services. Your feedback will help us understand what people need.</p><div className="meta"><span>◷ 3–4 minutes</span><span>•</span><span>10 questions</span></div></section>
     <section className="survey-card">
-      <div className="progress-top"><span>{q.id === "email" ? "EMAIL ADDRESS" : `QUESTION ${step} OF ${questions.length - 1}`}</span><strong>{progress}%</strong></div>
+      <div className="progress-top"><span>{step === 0 ? "BEFORE YOU BEGIN" : `QUESTION ${step} OF ${questions.length - 1}`}</span><strong>{progress}%</strong></div>
       <div className="progress"><div style={{width:`${progress}%`}} /></div>
       <form onSubmit={e => { e.preventDefault(); if (step < questions.length-1) { if(valid()) setStep(s=>s+1); else setError("Please select an answer to continue."); } else submit(e); }}>
-        <div className="question-number">{q.id === "email" ? "BEFORE YOU BEGIN" : `QUESTION ${step} OF ${questions.length - 1}`}</div>
+        <div className="question-number">{step === 0 ? "BEFORE YOU BEGIN" : `QUESTION ${step} OF ${questions.length - 1}`}</div>
         <h2>{q.title}</h2>
         {q.hint && <p className="hint">{q.hint}</p>}
-        {q.id === "email" && <input className="text-input" type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={e=>{setEmail(e.target.value); setError("");}} />}
-                {q.id === "email" && <p className="hint">Are you currently based in the UK?</p> }      <div className="options">
+        <div className="options">
           {q.options.map(option => {
             const checked = isMulti ? (Array.isArray(selected) && selected.includes(option)) : selected === option;
             return <label key={option} className={`option ${checked ? "selected" : ""}`}>
@@ -130,10 +130,12 @@ export default function Home() {
           })}
         </div>
         {((Array.isArray(selected) && selected.includes("Other (please specify)"))) && <input className="text-input" placeholder="Please tell us more (optional)" value={other[q.id] || ""} onChange={e=>setOther(o=>({...o,[q.id]:e.target.value}))}/>}
-        {q.id === "early_member" && isEmailRequired && <div className="conditional">
-          <h3>Great! What's the best email address to reach you?</h3>
-          <input className="text-input" type="email" required placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} />
-          <label className="consent"><input type="checkbox" checked={emailConsent} onChange={e=>setEmailConsent(e.target.checked)}/><span>I agree to be contacted by the research team about early membership. I understand I can withdraw my consent at any time.</span></label>
+        {q.id === "early_member" && <div className="conditional">
+          <label className="consent"><input type="checkbox" checked={emailConsent} onChange={e=>{setEmailConsent(e.target.checked); setError("");}}/><span>Yes, let me know when the app launches. I agree to be contacted by the research team about the launch and early membership, and I can withdraw my consent at any time.</span></label>
+          {emailConsent && <>
+            <h3>What's the best email address to reach you?</h3>
+            <input className="text-input" type="email" required autoComplete="email" placeholder="you@example.com" value={email} onChange={e=>{setEmail(e.target.value); setError("");}} />
+          </>}
         </div>}
         {step === questions.length-1 && <label className="consent research-consent"><input type="checkbox" checked={researchConsent} onChange={e=>setResearchConsent(e.target.checked)}/><span>I agree that my survey answers may be used for this customer research. Please do not include information that identifies me in published findings.</span></label>}
         {error && <p className="error">{error}</p>}

@@ -6,15 +6,11 @@ export async function POST(request: Request) {
     if (!body?.answers || typeof body.answers !== "object" || body.research_consent !== true) {
       return NextResponse.json({ error: "Please complete the survey and confirm research consent." }, { status: 400 });
     }
-    const isEarlyYes = body.answers.early_member === "Yes, definitely";
-    if (typeof body.email !== "string" || !body.email.trim()) {
-      return NextResponse.json({ error: "Please provide your email address." }, { status: 400 });
-    }
-    if (isEarlyYes && (!body.email || !body.email_contact_consent)) {
-      return NextResponse.json({ error: "An email address and contact consent are required for early membership." }, { status: 400 });
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())) {
-      return NextResponse.json({ error: "Please provide a valid email address." }, { status: 400 });
+    const wantsLaunchUpdates = body.email_contact_consent === true;
+    const email = wantsLaunchUpdates && typeof body.email === "string" ? body.email.trim() : "";
+    // Email is only required (and only stored) when the user opts in to launch updates.
+    if (wantsLaunchUpdates && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: "Please provide a valid email address so we can let you know when the app launches." }, { status: 400 });
     }
 
     const scriptUrl = process.env.GOOGLE_SCRIPT_URL;
@@ -32,8 +28,8 @@ export async function POST(request: Request) {
           secret,
           answers: body.answers,
           other: body.other || {},
-          email: body.email.trim(),
-          email_contact_consent: body.email_contact_consent === true,
+          email,
+          email_contact_consent: wantsLaunchUpdates,
           research_consent: true,
           cohort: body.cohort || "unclassified"
         }),
