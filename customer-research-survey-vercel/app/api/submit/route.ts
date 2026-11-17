@@ -14,6 +14,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please provide a valid email address so we can let you know when the app launches." }, { status: 400 });
     }
 
+    // Ignore any "market" sent by the browser; the server sets it below.
+    const { market: _ignored, ...answersWithoutMarket } = body.answers;
     const scriptUrl = process.env.GOOGLE_SCRIPT_URL;
     const secret = process.env.GOOGLE_SCRIPT_SECRET;
     if (!scriptUrl || !secret) {
@@ -27,7 +29,9 @@ export async function POST(request: Request) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           secret,
-          answers: body.answers,
+          // The sheet stores answers as one JSON cell, so the market goes in there
+          // too (first, so it's easy to spot). Set by the server, never the browser.
+          answers: { market: content.market, ...answersWithoutMarket },
           other: body.other || {},
           email,
           email_contact_consent: wantsLaunchUpdates,
