@@ -36,6 +36,15 @@ Open http://localhost:3000.
 4. Deploy.
 5. Set `NEXT_PUBLIC_SITE_URL` to the deployed HTTPS URL and redeploy.
 
+## Markets (UK and Brazil)
+
+Each country is a separate Vercel project built from this same repo. The country is chosen at build time by `NEXT_PUBLIC_MARKET`:
+
+- unset (or anything other than `br`): UK survey, from `content/uk.ts`
+- `br`: Brazil survey, from `content/br.ts`
+
+Only the selected country's content is bundled, so a deployed site never contains the other country's questions. Every response is sent to the Google Sheet with a `market` field (`UK` or `BR`). The Brazil site's first question is saved as `brazil_based` instead of `uk_based`.
+
 ## 4. QR code
 
 After deployment, open `https://YOUR-DEPLOYED-URL/qr`, confirm the URL shown is your live survey URL, then download the SVG QR code. Test it on another phone before printing.
@@ -45,7 +54,7 @@ After deployment, open `https://YOUR-DEPLOYED-URL/qr`, confirm the URL shown is 
 - Add a real privacy notice at a public URL and link it from the survey before collecting live responses.
 - Confirm the organisation/controller name and contact email in that notice.
 - Explain the purpose, retention period, lawful basis, and how respondents can exercise their data rights.
-- The survey asks for an email only when someone selects “Yes, definitely” to early membership, and requires a separate contact opt-in.
+- The survey asks for an email only on the last question, and only when someone ticks the launch-updates opt-in.
 - The Supabase service-role key is used only in the server API route. Never expose it as a `NEXT_PUBLIC_` variable.
 - Restrict access to the Supabase dashboard and response exports.
 - Consider adding rate limiting/CAPTCHA before broad public distribution.

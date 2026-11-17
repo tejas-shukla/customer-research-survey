@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import content from "@market";
 
 export async function POST(request: Request) {
   try {
@@ -31,7 +32,9 @@ export async function POST(request: Request) {
           email,
           email_contact_consent: wantsLaunchUpdates,
           research_consent: true,
-          cohort: body.cohort || "unclassified"
+          cohort: body.cohort || "unclassified",
+          // Set by the server from the deployment, not by the browser.
+          market: content.market
         }),
         cache: "no-store",
         signal: AbortSignal.timeout(10000)
