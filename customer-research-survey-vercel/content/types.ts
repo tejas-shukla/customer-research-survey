@@ -8,4 +8,7 @@ export type MarketContent = {
   defaultAnswers: Record<string, string>;
   /** Options in the "services_used" question that count as using a rewards scheme. */
   rewardServices: string[];
+  /** Completion code from SurveyCircle. Shown on the thank-you screen only to
+   *  visitors who arrive with ?src=surveycircle. Leave unset to hide it. */
+  surveyCircleCode?: string;
 };

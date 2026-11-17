@@ -1,6 +1,6 @@
  "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 // "@market" resolves to content/uk.ts or content/br.ts at build time, so each
 // deployment only ships its own country's questions.
@@ -19,6 +19,13 @@ export default function Home() {
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Where the visitor came from, e.g. ?src=surveycircle or ?src=hfp. Stored with
+  // the answers so we can see which channels bring in responses.
+  const [source, setSource] = useState("");
+  useEffect(() => {
+    const src = new URLSearchParams(window.location.search).get("src")?.toLowerCase() ?? "";
+    if (/^[a-z0-9_-]{1,30}$/.test(src)) setSource(src);
+  }, []);
   const progress = Math.round(((step + 1) / questions.length) * 100);
   const q = questions[step];
   const selected = answers[q.id];
@@ -47,7 +54,7 @@ export default function Home() {
     if (isEmailRequired && !emailValid) { setError("Please enter a valid email address so we can let you know when the app launches."); return; }
     setBusy(true);
     const payload = {
-      answers: Object.fromEntries(Object.entries(answers).map(([k,v]) => [k, Array.isArray(v) ? v : v])),
+      answers: { ...Object.fromEntries(Object.entries(answers).map(([k,v]) => [k, Array.isArray(v) ? v : v])), ...(source ? { source } : {}) },
       other,
       email: emailConsent ? email.trim() : "",
       email_contact_consent: emailConsent,
@@ -63,7 +70,7 @@ export default function Home() {
     finally { setBusy(false); }
   }
 
-  if (submitted) return <main className="shell"><section className="thankyou"><div className="cherry">🍒</div><p className="eyebrow">CUSTOMER RESEARCH CUSTOMER RESEARCH</p><h1>Thank you for taking part!</h1><p>Your answers have been submitted and will help us understand how people save, use rewards and plan more affordable holidays.</p><a className="button" href="/">Back to survey</a></section></main>;
+  if (submitted) return <main className="shell"><section className="thankyou"><div className="cherry">🍒</div><p className="eyebrow">CUSTOMER RESEARCH CUSTOMER RESEARCH</p><h1>Thank you for taking part!</h1><p>Your answers have been submitted and will help us understand how people save, use rewards and plan more affordable holidays.</p>{source === "surveycircle" && content.surveyCircleCode && <div className="survey-code"><p>Redeem the following Survey Code at <a href="https://www.surveycircle.com" target="_blank" rel="noopener noreferrer">www.surveycircle.com</a> and get free survey participants through SurveyCircle. The Survey Code is:</p><strong>{content.surveyCircleCode}</strong><p><a href={`https://www.surveycircle.com/${content.surveyCircleCode}/`} target="_blank" rel="noopener noreferrer">Redeem Survey Code with one click</a></p></div>}<a className="button" href="/">Back to survey</a></section></main>;
 
   return <main className="shell">
     <header className="brand"><div className="brand-mark">🍒</div><div><div className="brand-name">Customer Research</div><div className="brand-sub">CUSTOMER RESEARCH</div></div></header>

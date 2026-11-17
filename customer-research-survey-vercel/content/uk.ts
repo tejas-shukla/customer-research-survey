@@ -56,5 +56,7 @@ const content: MarketContent = {
   questions,
   defaultAnswers: { uk_based: "Yes" },
   rewardServices: ["Nectar or Tesco Clubcard", "TopCashback or Quidco", "Airline or hotel loyalty programmes", "Bank or credit card rewards"],
+  // Paste the code SurveyCircle gives you in step 2 of "Post a Survey".
+  surveyCircleCode: "N94Q-718M-M43L-LSV6",
 };
 export default content;
